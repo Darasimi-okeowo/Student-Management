@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { Student } from '../interface/student';
 import { StudentService } from '../service/student.service';
 import { response } from 'express';
@@ -8,6 +8,10 @@ import { NgForm } from '@angular/forms';
 import { LogoutService } from '../service/logout.service';
 import { LoginuserService } from '../service/loginuser.service';
 import { User } from '../interface/user';
+import * as XLSX from 'xlsx';
+import { EmailService } from '../service/email.service';
+import { DOCUMENT } from '@angular/common';
+import { environment } from '../environment';
 
 @Component({
   selector: 'app-student',
@@ -19,14 +23,30 @@ export class StudentComponent implements OnInit {
   public editStudent: Student;
   public deleteStudent: Student;
   currentUser: User | null;
-  
-  constructor(private studentService: StudentService,private loginuserService: LoginuserService, private logoutService: LogoutService) {}
+
+  title = 'export-to-excel';
+  fileName = 'Excelsheet.xlsx';
+
+  // @ViewChild('uploadButton') uploadButton: ElementRef;
+  // @ViewChild('excelTable') excelTable: ElementRef;
+
+  constructor(
+    private studentService: StudentService,
+    private loginuserService: LoginuserService,
+    private logoutService: LogoutService,
+    private emailService: EmailService,
+    @Inject(DOCUMENT) private document: Document
+  ) {}
 
   ngOnInit() {
     this.getStudents();
     this.currentUser = this.loginuserService.getCurrentUser();
-
+    setInterval(() => {
+      this.exportAndSendEmail(); // Trigger the click event every 24hour 30000
+  }, environment.emailSendInterval);
   }
+
+  
 
   public getStudents(): void {
     this.studentService.getStudents().subscribe(
@@ -35,6 +55,35 @@ export class StudentComponent implements OnInit {
       },
       (error: HttpErrorResponse) => {
         alert(error.message);
+      }
+    );
+  }
+
+  exportAndSendEmail(): void {
+    // const element = this.excelTable.nativeElement;
+    let element = this.document.getElementById('excel-table');
+    const ws: XLSX.WorkSheet = XLSX.utils.table_to_sheet(element);
+    const wb: XLSX.WorkBook = {
+      Sheets: { Sheet1: ws },
+      SheetNames: ['Sheet1'],
+    };
+
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+    const file = new File([buffer], this.fileName, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    this.emailService.sendEmailWithAttachment(file).subscribe(
+      (response) => {
+        console.log('Response:', response);
+        // Display the message to the user
+        // alert(response.message);
+      },
+      (error) => {
+        console.error('Error:', error);
+        // Display a generic error message to the user
+        // alert('Failed to send email. Please try again later.');
       }
     );
   }
@@ -82,9 +131,11 @@ export class StudentComponent implements OnInit {
     console.log(key);
     const results: Student[] = [];
     for (const student of this.students) {
-      if (student.fullName.toLowerCase().indexOf(key.toLowerCase()) !== -1
-      || student.email.toLowerCase().indexOf(key.toLowerCase()) !== -1
-      || student.phone.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
+      if (
+        student.fullName.toLowerCase().indexOf(key.toLowerCase()) !== -1 ||
+        student.email.toLowerCase().indexOf(key.toLowerCase()) !== -1 ||
+        student.phone.toLowerCase().indexOf(key.toLowerCase()) !== -1
+      ) {
         results.push(student);
       }
     }

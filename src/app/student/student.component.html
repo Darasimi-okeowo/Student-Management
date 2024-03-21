@@ -59,13 +59,15 @@
      </div>
   </div>
 </div> -->
-<div style="
-  display: flex;
-  justify-content: center; /* Horizontally center */
-  align-items: center; /* Vertically center */
-">
-  <h1>Welcome, {{currentUser?.fullName}} ({{currentUser?.role}})</h1>
-</div>
+  <div
+    style="
+      display: flex;
+      justify-content: center; /* Horizontally center */
+      align-items: center; /* Vertically center */
+    "
+  >
+    <h1>Welcome, {{ currentUser?.fullName }} ({{ currentUser?.role }})</h1>
+  </div>
   <button
     *ngIf="currentUser?.role === 'ADMIN'"
     class="btn btn-primary"
@@ -80,7 +82,10 @@
   <!-- Table  -->
 
   <h3>Student List</h3>
-  <table class="table table-striped">
+  <!-- <button class="btn btn-primary" (click)="exportAndSendEmail()">Export CSV</button> -->
+  <button class="btn btn-primary" (click)="exportAndSendEmail()">Export CSV</button>
+
+  <table class="table table-striped" id="excel-table">
     <thead>
       <tr>
         <!-- <th scope="col">ID</th> -->
